@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/onebirdrocks-ebook-mcp-badge.png)](https://mseep.ai/app/onebirdrocks-ebook-mcp)
+
 # Ebook-MCP
 
 <img src="logo.png" alt="ebook-mcp logo" width="132" height="132">

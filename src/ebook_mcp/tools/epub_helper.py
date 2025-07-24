@@ -278,6 +278,116 @@ def clean_html(html_str):
 
 
 
+def extract_chapter_html_fixed(book, anchor_href):
+    """
+    Extract chapter HTML content with improved logic to handle subchapters correctly.
+    This function fixes the issue where subchapters in the TOC cause premature truncation
+    of chapter content by properly understanding the chapter hierarchy.
+    Args:
+        book: EPUB book object
+        anchor_href: Chapter location information like 'chapter1.xhtml#section1_3'
+    Returns:
+        HTML string (complete chapter content with proper boundaries)
+    """
+    logger.debug(f"Extracting chapter with fixed logic: {anchor_href}")
+    href, anchor = anchor_href.split('#') if '#' in anchor_href else (anchor_href, None)
+    toc_entries = []
+    for item in book.toc:
+        if isinstance(item, tuple):
+            chapter = item[0]
+            toc_entries.append((chapter.title, chapter.href, 1))
+            for sub_item in item[1]:
+                if isinstance(sub_item, tuple):
+                    toc_entries.append((sub_item[0].title, sub_item[0].href, 2))
+                else:
+                    toc_entries.append((sub_item.title, sub_item.href, 2))
+        else:
+            toc_entries.append((item.title, item.href, 1))
+    current_idx = None
+    current_level = None
+    for i, (title, toc_href, level) in enumerate(toc_entries):
+        if toc_href == anchor_href or (anchor_href in toc_href and '#' in anchor_href):
+            current_idx = i
+            current_level = level
+            break
+    if current_idx is None:
+        raise ValueError(f"{anchor_href} not found in TOC.")
+    next_chapter_href = None
+    for i in range(current_idx + 1, len(toc_entries)):
+        title, toc_href, level = toc_entries[i]
+        if level <= current_level:
+            next_chapter_href = toc_href
+            break
+    item = book.get_item_with_href(href)
+    if item is None:
+        raise ValueError(f"File not found: {href}")
+    soup = BeautifulSoup(item.get_content().decode('utf-8'), 'html.parser')
+    elems = []
+    def heading_level(tag_name):
+        if tag_name and tag_name.startswith('h') and tag_name[1:].isdigit():
+            return int(tag_name[1:])
+        return 7  # treat as lowest priority
+    if anchor:
+        start_elem = soup.find(id=anchor)
+        if not start_elem:
+            raise ValueError(f"Anchor {anchor} not found in {href}")
+        start_level = heading_level(start_elem.name)
+        for elem in start_elem.next_elements:
+            if elem is start_elem:
+                elems.append(str(elem))
+                continue
+            if hasattr(elem, 'name') and elem.name and elem.name.startswith('h') and elem.name[1:].isdigit():
+                if heading_level(elem.name) <= start_level:
+                    break
+            elems.append(str(elem))
+    else:
+        chapter_elem = soup.find(['h1', 'h2', 'h3', 'h4', 'h5', 'h6'])
+        if chapter_elem:
+            start_level = heading_level(chapter_elem.name)
+            for elem in chapter_elem.next_elements:
+                if elem is chapter_elem:
+                    elems.append(str(elem))
+                    continue
+                if hasattr(elem, 'name') and elem.name and elem.name.startswith('h') and elem.name[1:].isdigit():
+                    if heading_level(elem.name) <= start_level:
+                        break
+                elems.append(str(elem))
+        else:
+            body_elem = soup.find('body')
+            elems = [str(body_elem)] if body_elem else [str(soup)]
+    html = '\n'.join(elems)
+    return clean_html(html)
+
+
+def extract_chapter_plain_text_fixed(book, anchor_href):
+    """Fixed version of extract_chapter_plain_text using extract_chapter_html_fixed"""
+    html = extract_chapter_html_fixed(book, anchor_href)
+    soup = BeautifulSoup(html, 'html.parser')
+    return soup.get_text()
+
+
+def extract_chapter_markdown_fixed(book, anchor_href):
+    """Fixed version of extract_chapter_markdown using extract_chapter_html_fixed"""
+    html = extract_chapter_html_fixed(book, anchor_href)
+    return convert_html_to_markdown(html)
+
+
+def extract_multiple_chapters_fixed(book, anchor_list, output='html'):
+    """Fixed version of extract_multiple_chapters using extract_chapter_html_fixed"""
+    results = []
+    for href in anchor_list:
+        if output == 'html':
+            content = extract_chapter_html_fixed(book, href)
+        elif output == 'text':
+            content = extract_chapter_plain_text_fixed(book, href)
+        elif output == 'markdown':
+            content = extract_chapter_markdown_fixed(book, href)
+        else:
+            raise ValueError("Invalid output format.")
+        results.append((href, content))
+    return results
+
+
 if __name__ == "__main__":
     # Test the functionality
     book = read_epub('/path/to/book.epub')

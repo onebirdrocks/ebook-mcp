@@ -245,9 +245,6 @@ def extract_chapter_plain_text(book, anchor_href):
     soup = BeautifulSoup(html, 'html.parser')
     return soup.get_text()
 
-def extract_chapter_markdown(book, anchor_href):
-    html = extract_chapter_html(book, anchor_href)
-    return convert_html_to_markdown(html)
 
 def extract_multiple_chapters(book, anchor_list, output='html'):
     results = []
@@ -386,7 +383,7 @@ def extract_chapter_plain_text_fixed(book, anchor_href):
     return soup.get_text()
 
 
-def extract_chapter_markdown_fixed(book, anchor_href):
+def extract_chapter_markdown(book, anchor_href):
     """Fixed version of extract_chapter_markdown using extract_chapter_html_fixed"""
     html = extract_chapter_html_fixed(book, anchor_href)
     return convert_html_to_markdown(html)

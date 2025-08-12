@@ -83,6 +83,7 @@ def get_epub_toc(epub_path: str) -> List[Tuple[str, str]]:
     except Exception as e:
         raise Exception(str(e))
 
+
 @mcp.tool()
 def get_epub_chapter_markdown(epub_path:str, chapter_id: str) -> str:
     """⚠️ DEPRECATED: This tool has a known issue when processing EPUB files with subchapters.

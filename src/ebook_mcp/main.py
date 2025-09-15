@@ -117,7 +117,7 @@ def get_epub_toc(epub_path: str) -> List[Tuple[str, str]]:
 
 @mcp.tool()
 @handle_mcp_errors
-def get_epub_chapter_markdown(epub_path:str, chapter_id: str) -> str:
+def get_epub_chapter_markdown(epub_path:str, chapter_id: str, start_index: int = 0, page_size: int = 50000) -> str:
     """Get content of a given chapter using the improved extraction method.
     
     ✅ RECOMMENDED: This tool fixes the truncation issue in the original version when processing subchapters.
@@ -130,15 +130,27 @@ def get_epub_chapter_markdown(epub_path:str, chapter_id: str) -> str:
     Args:
         epub_path: Full path to the ebook file. eg. "/Users/macbook/Downloads/test.epub"
         chapter_id: Chapter id of the chapter to get content (e.g., "chapter1.xhtml#section1_3")
+        start_index: Starting character index for pagination (default: 0)
+        page_size: Maximum number of characters to return (default: 50000)
     
     Returns:
-        str: Chapter content in markdown format
+        str: Chapter content in markdown format (paginated if needed)
     """
-    logger.debug(f"calling get_epub_chapter_markdown: {epub_path}, chapter ID: {chapter_id}")
+    logger.debug(f"calling get_epub_chapter_markdown: {epub_path}, chapter ID: {chapter_id}, start: {start_index}, size: {page_size}")
     book = epub_helper.read_epub(epub_path)
     
-    # Use the improved version
-    return epub_helper.extract_chapter_markdown(book, chapter_id)
+    # Use the improved version to get full content
+    full_content = epub_helper.extract_chapter_markdown(book, chapter_id)
+    
+    # Apply pagination
+    end_index = start_index + page_size
+    paginated_content = full_content[start_index:end_index]
+    
+    # Add pagination info if content was truncated
+    if end_index < len(full_content):
+        paginated_content += f"\n\n[Content truncated. Total length: {len(full_content)} characters. Use start_index={end_index} to continue.]"
+    
+    return paginated_content
 
 # PDF related tools
 @mcp.tool()

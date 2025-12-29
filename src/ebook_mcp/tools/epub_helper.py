@@ -1,4 +1,5 @@
 from typing import List, Tuple, Dict, Union, Any, Optional
+from urllib.parse import unquote
 import os
 from .logger_config import get_logger, log_operation
 
@@ -93,16 +94,16 @@ def get_toc(epub_path: str) -> List[Tuple[str, str]]:
             if isinstance(item, tuple):
                 # item format: (chapter element, list of subchapters)
                 chapter = item[0]
-                toc.append((chapter.title, chapter.href))
+                toc.append((chapter.title, unquote(chapter.href)))
                 # Add subchapters
                 for sub_item in item[1]:
                     if isinstance(sub_item, tuple):
-                        toc.append((sub_item[0].title, sub_item[0].href))
+                        toc.append((sub_item[0].title, unquote(sub_item[0].href)))
                     else:
-                        toc.append((sub_item.title, sub_item.href))
+                        toc.append((sub_item.title, unquote(sub_item.href)))
             else:
                 # Single level TOC item
-                toc.append((item.title, item.href))
+                toc.append((item.title, unquote(item.href)))
         
         logger.info(
             "EPUB TOC extraction completed",
@@ -269,12 +270,12 @@ def flatten_toc(book: Any) -> List[str]:
         for item in toc:
             if isinstance(item, tuple):
                 link, children = item
-                toc_list.append(link.href)
+                toc_list.append(unquote(link.href))
                 if children:
                     _flatten(children)
             else:
                 # Handle single Link object
-                toc_list.append(item.href)
+                toc_list.append(unquote(item.href))
     _flatten(book.toc)
     return toc_list
 
@@ -337,14 +338,14 @@ def extract_chapter_html(book: Any, anchor_href: str) -> str:
     for item in book.toc:
         if isinstance(item, tuple):
             chapter = item[0]
-            toc_entries.append((chapter.title, chapter.href, 1))
+            toc_entries.append((chapter.title, unquote(chapter.href), 1))
             for sub_item in item[1]:
                 if isinstance(sub_item, tuple):
-                    toc_entries.append((sub_item[0].title, sub_item[0].href, 2))
+                    toc_entries.append((sub_item[0].title, unquote(sub_item[0].href), 2))
                 else:
-                    toc_entries.append((sub_item.title, sub_item.href, 2))
+                    toc_entries.append((sub_item.title, unquote(sub_item.href), 2))
         else:
-            toc_entries.append((item.title, item.href, 1))
+            toc_entries.append((item.title, unquote(item.href), 1))
     current_idx = None
     current_level = None
     for i, (title, toc_href, level) in enumerate(toc_entries):

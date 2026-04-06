@@ -234,10 +234,6 @@ if __name__ == "__main__":
     logger.info("Server is starting.....")
     mcp.run(transport='stdio')
 
-# as the cli entry after the "pip install ebook-mcp"
 def cli_entry():
-    import logging
-    logging.info("Starting ebook-mcp server")
-    from mcp.server.fastmcp import FastMCP
-    mcp = FastMCP("ebook-mcp")
+    logger.info("Starting ebook-mcp server")
     mcp.run(transport='stdio')
